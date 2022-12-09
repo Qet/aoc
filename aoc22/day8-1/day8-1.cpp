@@ -58,7 +58,6 @@ struct Forest
 		{
 			for (int j = 0; j < grid[i].size(); j++)
 			{
-				int h = grid[i][j];
 				if (visibleN(i, j) || visibleE(i, j) || visibleW(i, j) || visibleS(i, j))
 					vis++;
 			}
