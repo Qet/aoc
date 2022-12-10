@@ -1,20 +1,76 @@
-// day10-2.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include <iostream>
+#include <vector>
+#include <string>
+#include <queue>
+#include <map>
+using namespace std;
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	string line;
+	int curCycle = 1;
+	int x = 1;
+	int delay = 0;
+	map<int, int> futureAdds; //key: cycle, value: add
+
+	map<int, int> cycleXValues;
+
+	vector<char> screen(240, '.');
+
+	while (true)
+	{
+		x += futureAdds[curCycle];
+		cycleXValues[curCycle] = x;
+		delay--;
+
+		int crtPos = (curCycle - 1) % 40;
+		if (crtPos >= x - 1 && crtPos <= x + 1)
+		{
+			screen[curCycle-1] = '#';
+		}
+
+		if (delay <= 0)
+		{
+			getline(cin, line);
+			if (cin.eof())
+				break;
+
+			string instr = line.substr(0, 4);
+			int val = 0;
+			if (line.length() > 4)
+				val = stoi(line.substr(4));
+
+			if (instr == "addx")
+			{
+				futureAdds[curCycle + 2] = val;
+				delay = 2;
+			}
+		}
+
+
+		curCycle++;
+	}
+
+	vector<int> chosenCycles{ 20, 60, 100, 140, 180, 220 };
+
+	int sum = 0;
+	for (int c : chosenCycles)
+	{
+		int s = cycleXValues[c] * c;
+		cout << "cycle " << c << ": " << s << endl;
+		sum += s;
+	}
+	cout << "sum = " << sum << endl;
+
+	for (int p = 0; p < 240; p++)
+	{
+		if (p % 40 == 0)
+		{
+			cout << endl;
+		}
+		cout << screen[p];
+
+	}
+	cout << endl;
+
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
