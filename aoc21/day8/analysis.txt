@@ -1,0 +1,67 @@
+Original 5s and 6s:
+cdfbe 
+gcdfa 
+fbcad 
+cefabd 
+cdfgeb 
+cagedb 
+
+Sorted: 
+5s:      not matching
+a cdfg   bg
+abcdf    bg
+ 
+ bcdef   ae 
+abcd f   ae
+
+acd fg   abeg   (not much use; linearly dependent on the 2 above...)
+bcdef    abeg
+
+6s:
+abcdef 
+bcdefg 
+abcdeg 
+
+abcdeg  fg 
+abcdef  fg
+
+abcdef  ag
+ bcdefg ag
+
+CDE
+ 
+
+
+
+Uniques: 
+ab
+dab 
+eafb 
+acedgfb 
+
+
+
+- segment A - set of {7s} - {1s}  ("1s" - signal pattern of length 2. "7s" signal pattern length 3)
+- C/F is {1s}
+- B/D is {4s} - {1s} (4s is len 4)
+- E/G is {abcdefg} - {4s} - {7s}
+
+- look at the 5-digits. find the pairs with only 1 difference. there will be 2 pairs. they will map to either a BC pair or EF pair. 
+- whichever pair shares its letters with BC or EF must match either BC or EF. 
+- the ordering will be determined by the intersection of E ({E/G}) and the pair that matches EF (similarly for B, C and F).
+
+
+num0 = seg("ABCEFG", 0);
+num1 = seg("CF", 1);
+num2 = seg("ACDEG", 2);
+num3 = seg("ACDFG", 3);
+num4 = seg("BCDF", 4);
+num5 = seg("ABDFG", 5);
+num6 = seg("ABDEFG", 6);
+num7 = seg("ACF", 7);
+num8 = seg("ABCDEFG", 8);
+num9 = seg("ABCDFG", 9);
+
+
+
+
