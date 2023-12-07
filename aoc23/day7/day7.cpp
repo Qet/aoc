@@ -1,20 +1,167 @@
-// day7.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <map>
+
+using namespace std;
+
+int cardScore(char card)
+{
+	map<char, int> scores = {
+		{'2', 1},
+		{'3', 2},
+		{'4', 3},
+		{'5', 4},
+		{'6', 5},
+		{'7', 6},
+		{'8', 7},
+		{'9', 8},
+		{'T', 9},
+		{'J', 10},
+		{'Q', 11},
+		{'K', 12},
+		{'A', 13}
+	};
+
+	return scores[card];
+}
+
+class CardCount
+{
+	map<char, int> counts = {
+		{'2', 0},
+		{'3', 0},
+		{'4', 0},
+		{'5', 0},
+		{'6', 0},
+		{'7', 0},
+		{'8', 0},
+		{'9', 0},
+		{'T', 0},
+		{'J', 0},
+		{'Q', 0},
+		{'K', 0},
+		{'A', 0}
+	};
+
+	int numXOfKind(int x)
+	{
+		int ret = 0;
+		for (auto const& card : counts)
+		{
+			if (card.second == x)
+				ret++;
+		}
+		return ret;
+	}
+
+	bool onePair()
+	{
+		return numXOfKind(2) == 1;
+	}
+
+	bool twoPair()
+	{
+		return numXOfKind(2) == 2;
+	}
+
+	bool trips()
+	{
+		return numXOfKind(3) == 1;
+	}
+
+	bool quads()
+	{
+		return numXOfKind(4) == 1;
+	}
+
+	bool pents()
+	{
+		return numXOfKind(5) == 1;
+	}
+
+	bool fullHouse()
+	{
+		return numXOfKind(3) == 1 && numXOfKind(2) == 1;
+	}
+
+public: 
+	CardCount(string hand)
+	{
+		for (char c : hand)
+		{
+			counts[c]++;
+		}
+	}
+
+	int score()
+	{
+		if (pents()) return 6;
+		if (quads()) return 5;
+		if (fullHouse()) return 4;
+		if (trips()) return 3;
+		if (twoPair()) return 2;
+		if (onePair()) return 1;
+		return 0;
+	}
+
+
+
+};
+
+
+class HandBid
+{
+	string hand;
+public:
+
+	int bid;
+
+	HandBid(string line)
+	{
+		hand = line.substr(0, 5);
+		bid = stoi(line.substr(5));
+	}
+
+	int handType()
+	{
+		CardCount cc(hand);
+				
+		
+
+	}
+
+
+};
+
+
+
+
+bool worstHand(HandBid handA, HandBid handB) //sort from worst to best 
+{
+	return false; //todo
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	string line;
+	vector<HandBid> hands;
+
+	while (getline(cin, line))
+	{
+		hands.push_back(HandBid(line));
+	}
+
+	sort(hands.begin(), hands.end(), worstHand);
+	
+	int winnings = 0;
+	for (int i = 0; i < hands.size(); i++)
+	{
+		winnings += (i + 1) * hands[i].bid;
+	}
+
+	cout << "Winnings: " << winnings << endl;
+
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
