@@ -105,9 +105,6 @@ public:
 		if (onePair()) return 1;
 		return 0;
 	}
-
-
-
 };
 
 
