@@ -18,7 +18,7 @@ int cardScore(char card)
 		{'8', 7},
 		{'9', 8},
 		{'T', 9},
-		{'J', 10},
+		{'J', 0},
 		{'Q', 11},
 		{'K', 12},
 		{'A', 13}
@@ -45,48 +45,86 @@ class CardCount
 		{'A', 0}
 	};
 
-	int numXOfKind(int x)
+	int numXOfKind(int x) //ignore jokers
 	{
 		int ret = 0;
 		for (auto const& card : counts)
 		{
-			if (card.second == x)
+			if (card.first != 'J' && card.second == x)
 				ret++;
 		}
 		return ret;
 	}
 
-	bool onePair()
+	int numJokers()
+	{
+		return counts['J'];
+	}
+
+	bool highCard()
+	{
+		return numXOfKind(1) + numJokers() == 5;
+	}
+
+	bool plainOnePair()
 	{
 		return numXOfKind(2) == 1;
+	}
+
+	bool onePair()
+	{
+		return plainOnePair() ||
+			highCard() && numJokers() == 1;
 	}
 
 	bool twoPair()
 	{
 		return numXOfKind(2) == 2;
+		//jokers N/A as 1 joker is a pair (or trips if you have a pair), and 2 jokers makes trips, which is better than 2 pair anyway. 
 	}
 
-	bool trips()
+	bool plainTrips()
 	{
 		return numXOfKind(3) == 1;
 	}
 
-	bool quads()
+	bool trips()
+	{
+		return plainTrips() ||
+			highCard() && numJokers() == 2 ||
+			plainOnePair() && numJokers() == 1;
+	}
+
+	bool plainQuads()
 	{
 		return numXOfKind(4) == 1;
 	}
 
+	bool quads()
+	{
+		return plainQuads() ||
+			highCard() && numJokers() == 3 ||
+			plainOnePair() && numJokers() == 2 ||
+			plainTrips() && numJokers() == 1;
+	}
+
 	bool pents()
 	{
-		return numXOfKind(5) == 1;
+		return numXOfKind(5) == 1 ||
+			numJokers() == 5 ||
+			highCard() && numJokers() == 4 ||
+			plainOnePair() && numJokers() == 3 ||
+			plainTrips() && numJokers() == 2 ||
+			plainQuads() && numJokers() == 1;
 	}
 
 	bool fullHouse()
 	{
-		return numXOfKind(3) == 1 && numXOfKind(2) == 1;
+		return numXOfKind(3) == 1 && numXOfKind(2) == 1 ||
+			twoPair() && numJokers() == 1;
 	}
 
-public: 
+public:
 	CardCount(string hand)
 	{
 		for (char c : hand)
@@ -105,15 +143,12 @@ public:
 		if (onePair()) return 1;
 		return 0;
 	}
-
-
-
 };
 
 
 class HandBid
 {
-	
+
 public:
 
 	int bid;
@@ -159,7 +194,7 @@ int main()
 	}
 
 	sort(hands.begin(), hands.end(), worstHand);
-	
+
 	int winnings = 0;
 	for (int i = 0; i < hands.size(); i++)
 	{
