@@ -95,7 +95,7 @@ public:
 		}
 	}
 
-	int score()
+	int handType()
 	{
 		if (pents()) return 6;
 		if (quads()) return 5;
@@ -113,34 +113,39 @@ public:
 
 class HandBid
 {
-	string hand;
+	
 public:
 
 	int bid;
+	int handType;
+	string hand;
 
 	HandBid(string line)
 	{
 		hand = line.substr(0, 5);
 		bid = stoi(line.substr(5));
-	}
-
-	int handType()
-	{
 		CardCount cc(hand);
-				
-		
-
+		handType = cc.handType();
 	}
-
-
 };
-
-
 
 
 bool worstHand(HandBid handA, HandBid handB) //sort from worst to best 
 {
-	return false; //todo
+	if (handA.handType != handB.handType)
+	{
+		return handA.handType < handB.handType;
+	}
+
+	for (int i = 0; i < 5; i++)
+	{
+		int cardScoreA = cardScore(handA.hand[i]);
+		int cardScoreB = cardScore(handB.hand[i]);
+
+		if (cardScoreA != cardScoreB)
+			return cardScoreA < cardScoreB;
+	}
+	return false;
 }
 
 int main()
