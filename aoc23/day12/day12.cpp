@@ -6,6 +6,7 @@
 #include <sstream>
 #include <list>
 #include <cassert>
+#include <thread>
 
 using namespace std;
 
@@ -39,6 +40,17 @@ struct Row
 	list<string> combos;
 	vector<int> code;
 
+	void unfold()
+	{
+		string originalCombo = combos.back();
+		vector<int> originalCode = code;
+		for (int i = 0; i < 4; i++)
+		{
+			combos.back() += "?" + originalCombo;
+			code.insert(code.end(), originalCode.begin(), originalCode.end());
+		}
+	}
+
 	Row(string line)
 	{
 		int sp = line.find(' ');
@@ -53,11 +65,11 @@ struct Row
 		//check for a code at a position in the string
 		string hashStr = line.substr(pos, len);
 		bool hasQn = false;
-		for (char c : hashStr)
+		for (int i = pos; i < (pos + len); i++)
 		{
-			if (c == '.') 
+			if (line[i] == '.')
 				return ComboCheckResult::INVALID;
-			if (c == '?')
+			if (line[i] == '?')
 				hasQn = true;
 		}
 		if (line.length() >= (pos + len))
@@ -72,7 +84,7 @@ struct Row
 		{
 			return ComboCheckResult::VALID_WITH_QNS;
 		}
-		else if (hashStr.length() == len)
+		else if ((pos+len) <= line.length())
 		{
 			return ComboCheckResult::VALID_COMPLETE;
 		}
@@ -172,30 +184,50 @@ struct Row
 	}
 };
 
+
+void doWork(Row& r)
+{
+	//part 2
+	r.unfold();
+
+	r.expand();
+
+
+	//r.printCombos();
+	//cout << "-------------------" << endl;
+}
+
+
 int main()
 {
 	vector<Row> rows;
-
+	vector<thread> threads;
 	string line;
 	while (getline(cin, line))
 	{
 		rows.push_back(Row(line));
 	}
 
+	for (Row& r : rows)
+	{
+		threads.push_back(thread(doWork, ref(r)));
+	}
+
+	int tnum = 0;
+	for (thread& t : threads)
+	{
+		t.join();
+		cout << "thread " << ++tnum << " finished" << endl;
+	}
+
 	int rowComboSum = 0;
 	int rowNum = 1;
 	for (Row& r : rows)
 	{
-		r.expand();
 		cout << "Row " << rowNum << " combos: " << r.combos.size() << endl;
 		rowComboSum += r.combos.size();
 		rowNum++;
-
-		//r.printCombos();
-		//cout << "-------------------" << endl;
 	}
-
-
 
 	cout << "total combos: " << rowComboSum << endl;
 	
