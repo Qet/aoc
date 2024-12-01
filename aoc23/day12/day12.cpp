@@ -6,7 +6,8 @@
 #include <sstream>
 #include <list>
 #include <cassert>
-#include <thread>
+#include <numeric>
+#include <chrono>
 
 using namespace std;
 
@@ -28,209 +29,366 @@ vector<int> parseCSVNums(string nums)
 	return vec;
 }
 
-enum class ComboCheckResult
+
+struct Spring
 {
-	VALID_COMPLETE,
-	VALID_WITH_QNS,
-	INVALID
+	int pos;
+	int len;
+	int maxLen;
+
+	void moveRight()
+	{
+		pos++;
+	}
+
+	bool atEnd()
+	{
+		return pos + len >= maxLen;
+	}
+};
+
+struct Combo
+{
+
+	string str;
+	int len;
+	Combo() {}
+	Combo(string cmb)
+	{
+		for (int i = 0; i < cmb.size(); i++)
+		{
+			if (cmb[i] == '.')
+				dots.push_back(i);
+			else if (cmb[i] == '#')
+				hashes.push_back(i);
+		}
+		str = cmb;
+		len = str.length();
+	}
+
+	vector<int> dots;
+	vector<int> hashes;
+
+	bool dotsValid(const Spring& spring)
+	{
+		for (int d : dots)
+		{
+			//if we have gone past the spring then no point checking the rest as they won't hit the spring. 
+			if (d >= spring.pos + spring.len)
+				break;
+
+			if (spring.pos <= d)
+			{
+				if (spring.pos + spring.len > d)
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+
+	bool hashesValid(const vector<Spring>& springs)
+	{
+		/*
+		fail =
+			hash not in a spring
+		*/
+
+		for (int h : hashes)
+		{
+			bool hashInSpring = false;
+
+			for (const Spring& sp: springs)
+			{
+				if (sp.pos <= h)
+				{
+					if (sp.pos + sp.len > h)
+					{
+						hashInSpring = true;
+						break;
+					}
+				}
+			}
+			
+			if (!hashInSpring)
+				return false;
+		}
+
+		return true;
+	}
+
 };
 
 struct Row
 {
-	list<string> combos;
+	Combo combo;
 	vector<int> code;
+	int codeLen;
 
 	void unfold()
 	{
-		string originalCombo = combos.back();
+		string originalCombo = combo.str;
+		string newCombo = originalCombo;
 		vector<int> originalCode = code;
 		for (int i = 0; i < 4; i++)
 		{
-			combos.back() += "?" + originalCombo;
+			newCombo += "?" + originalCombo;
 			code.insert(code.end(), originalCode.begin(), originalCode.end());
 		}
+		combo = Combo(newCombo);
 	}
 
-	Row(string line)
+	Row(string line, string prepend, string append, bool unfoldLine)
 	{
 		int sp = line.find(' ');
-		string hashLine = line.substr(0, sp);
+		combo = Combo(prepend + line.substr(0, sp) + append);
 		string codeLine = line.substr(sp + 1);
 		code = parseCSVNums(codeLine);
-		combos.push_back(hashLine);
+
+		//part 2
+		if (unfoldLine) unfold();
+
+		//min length of the "train" of springs with one dot between them
+		codeLen = accumulate(code.begin(), code.end(), code.size() - 1);
+
+		initialise();
 	}
 
-	ComboCheckResult codeCheck(string line, int pos, int len)
+	vector<Spring> springs;
+
+	void initialise()
 	{
-		//check for a code at a position in the string
-		string hashStr = line.substr(pos, len);
-		bool hasQn = false;
-		for (int i = pos; i < (pos + len); i++)
+		int offset = 0;
+		for (int c : code)
 		{
-			if (line[i] == '.')
-				return ComboCheckResult::INVALID;
-			if (line[i] == '?')
-				hasQn = true;
+			Spring sp;
+			sp.len = c;
+			sp.pos = offset;
+			springs.push_back(sp);
+			offset += c + 1;
 		}
-		if (line.length() >= (pos + len))
+		offset = combo.len;
+		for (int i = springs.size() - 1; i >= 0; i--)
 		{
-			if (line[pos + len] == '#')
-				return ComboCheckResult::INVALID;
-			if (line[pos + len] == '?')
-				hasQn = true;
+			springs[i].maxLen = offset;
+			offset -= (1 + springs[i].len);
 		}
 
-		if (hasQn)
+	}
+
+	int validCodes = 0;
+
+	void timeSampling()
+	{
+		if (checks % checksPerClockSample == 0)
 		{
-			return ComboCheckResult::VALID_WITH_QNS;
+			auto tNow = chrono::system_clock::now();
+			cout << (float)checks / chrono::duration_cast<chrono::seconds>(tNow - tStart).count() / 1e6 << " million checks/s" << endl;
 		}
-		else if ((pos+len) <= line.length())
+	}
+
+	bool allSpringsAtEnd()
+	{
+		for (int i = 0; i < springs.size(); i++)
 		{
-			return ComboCheckResult::VALID_COMPLETE;
+			if (!springs[i].atEnd())
+				return false;
 		}
-		else
+		return true;
+	}
+
+	int findRightMostSpringThatCanMove()
+	{
+		for (int i = springs.size() - 1; i >= 0; i--)
 		{
-			return ComboCheckResult::INVALID;
+			if (!springs[i].atEnd())
+				return i;
 		}
+		return -1;
+	}
+
+	void pullRightSpringsBack(int rms)
+	{
+		if (rms < (springs.size() - 1))
+		{
+			for (int i = rms + 1; i < springs.size(); i++)
+			{
+				springs[i].pos = springs[i - 1].pos + springs[i - 1].len + 1;
+			}
+		}
+	}
+
+	bool bumpSpringsRight(int sp)
+	{
+		bool ret = false;
+		for (int i = sp; i < springs.size(); i++)
+		{
+			if (!springs[i].atEnd())
+			{
+				springs[i].pos++;
+				ret = true;
+			}
+		}
+		return ret;
+	}
+
+	uint64_t checks = 0;
+	uint64_t checksPerClockSample = 10000000;
+	chrono::time_point<chrono::system_clock> tStart;
+
+	void checkCode()
+	{
+		bool stillBumping = true;
+		while (stillBumping)
+		{
+			stillBumping = false;
+			//printCombo();
+			bool allSpringsValid = true;
+			for (int sp = 0; sp < springs.size(); sp++)
+			{
+				if (!combo.dotsValid(springs[sp]))
+				{
+					stillBumping = bumpSpringsRight(sp);
+					allSpringsValid = false;
+					break;
+				}
+				checks++;
+			}
+			if (allSpringsValid)
+			{
+				if (combo.hashesValid(springs))
+					validCodes++;
+				checks++;
+			}
+		}
+		//timeSampling();
+	}
+
+	void scan()
+	{
+		tStart = chrono::system_clock::now();
+		int curSpring = springs.size() - 1;
+		
+		checkCode();
+
+		while (!allSpringsAtEnd())
+		{
+			int rms = findRightMostSpringThatCanMove();
+			if (rms >= 0)
+			{
+				springs[rms].moveRight();
+				if (rms != springs.size() - 1)
+					pullRightSpringsBack(rms);
+			}
+			checkCode();
+		} 
+	}
+
+	void print()
+	{
+		cout << validCodes << endl;
+	}
+
+	void printCombo()
+	{
+		for (const Spring& sp : springs)
+		{
+			cout << sp.pos << " ";
+		}
+		cout << endl;
 		
 	}
 
-	ComboCheckResult getValidity(string line)
-	{
-		int pos = 0;
-		const int sz = line.size();
-		bool hasQn = line.find('?') != string::npos;
-		for (int c : code)
-		{
-			bool codeFound = false;
-			while (pos < sz && !codeFound)
-			{
-				if (line[pos] == '?')
-					return ComboCheckResult::VALID_WITH_QNS;
-
-				if (line[pos] != '.')
-				{
-					ComboCheckResult chk = codeCheck(line, pos, c);
-					switch (chk)
-					{
-					case ComboCheckResult::INVALID:
-						return chk;
-					case ComboCheckResult::VALID_COMPLETE:
-						pos += c;
-						codeFound = true;
-						break;
-					case ComboCheckResult::VALID_WITH_QNS:
-						return chk;
-					}
-				}
-				pos++;
-			}
-			if (!codeFound)
-				return ComboCheckResult::INVALID;
-		}
-
-		if (!hasQn && pos < sz)
-		{
-			string remainder = line.substr(pos);
-			for (char c : remainder)
-				if (c != '.')
-					return ComboCheckResult::INVALID;
-		}
-
-		return hasQn ? ComboCheckResult::VALID_WITH_QNS : ComboCheckResult::VALID_COMPLETE;
-	}
-
-	void expand()
-	{
-		list<string>::const_iterator it = combos.begin();
-
-		while (it != combos.end())
-		{
-			ComboCheckResult res = getValidity(*it);
-			if (res == ComboCheckResult::VALID_WITH_QNS)
-			{
-				int qn = it->find('?');
-				assert (qn != string::npos);
-				
-				//expand and add 2 combinations on the end of the list. 
-				string comboDot = *it;
-				string comboHash = *it;
-				comboDot[qn] = '.';
-				comboHash[qn] = '#';
-
-				combos.push_back(comboDot);
-				combos.push_back(comboHash);
-				
-				it = combos.erase(it); //this has been replaced by 2 more combos so can be erased. 
-
-			}
-			else if (res == ComboCheckResult::INVALID)
-			{
-				it = combos.erase(it); //prune this branch as it's invalid
-			}
-			else
-			{
-				++it;
-			}
-		}
-	}
-
-	void printCombos()
-	{
-		for (string l : combos)
-		{
-			cout << l << endl;
-		}
-	}
 };
 
 
-void doWork(Row& r)
+
+void calcValidCodes(vector<Row>& rows)
 {
-	//part 2
-	r.unfold();
-
-	r.expand();
-
-
-	//r.printCombos();
-	//cout << "-------------------" << endl;
+	for (Row& r : rows)
+	{
+		r.scan();
+		//r.print();
+	}
 }
+
+
+
+
+class MainCalcs
+{
+	string line;
+	vector<string> lines;
+	vector<Row> plainRows;
+	vector<Row> qnStartRows;
+	vector<Row> qnEndRows;
+	vector<Row> qnDblRows;
+	vector<Row> unfoldedRows;
+
+
+public: 
+	void init()
+	{
+		while (getline(cin, line))
+		{
+			lines.push_back(line);
+		}
+
+		for (string l : lines)
+		{
+			plainRows.push_back(Row(l, "", "", false));
+			qnStartRows.push_back(Row(l, "?", "", false));
+			qnEndRows.push_back(Row(l, "", "?", false));
+			qnDblRows.push_back(Row(l, "?", "?", false));
+			unfoldedRows.push_back(Row(l, "", "", true));
+		}
+
+		calcValidCodes(plainRows);
+		calcValidCodes(qnStartRows);
+		calcValidCodes(qnEndRows);
+		calcValidCodes(qnDblRows);
+	}
+
+	
+	int part1()
+	{
+		int validCodes = 0;
+		for (Row& r : plainRows)
+		{
+			validCodes += r.validCodes;
+		}
+		return validCodes;
+	}
+
+	uint64_t part2()
+	{
+		uint64_t validCodes = 0;
+		for (int i = 0; i < plainRows.size(); i++)
+		{
+			uint64_t firstVal = plainRows[i].validCodes;
+			uint64_t otherVals = 0;
+			//if ((plainRows[i].combo.str.back()) == '#')
+			//	otherVals = qnEndRows[i].validCodes;
+			//else
+			//otherVals = max(qnEndRows[i].validCodes, qnStartRows[i].validCodes);
+			otherVals = qnDblRows[i].validCodes;
+
+			//validCodes += firstVal * powl(otherVals, 4);
+			validCodes += powl(firstVal, 2) * powl(otherVals, 3);
+		}
+		return validCodes;
+	}
+
+};
 
 
 int main()
 {
-	vector<Row> rows;
-	vector<thread> threads;
-	string line;
-	while (getline(cin, line))
-	{
-		rows.push_back(Row(line));
-	}
+	MainCalcs mc;
+	mc.init();
 
-	for (Row& r : rows)
-	{
-		threads.push_back(thread(doWork, ref(r)));
-	}
-
-	int tnum = 0;
-	for (thread& t : threads)
-	{
-		t.join();
-		cout << "thread " << ++tnum << " finished" << endl;
-	}
-
-	int rowComboSum = 0;
-	int rowNum = 1;
-	for (Row& r : rows)
-	{
-		cout << "Row " << rowNum << " combos: " << r.combos.size() << endl;
-		rowComboSum += r.combos.size();
-		rowNum++;
-	}
-
-	cout << "total combos: " << rowComboSum << endl;
-	
-
+	cout << "Part 1: " << mc.part1() << endl;
+	cout << "Part 2: " << mc.part2() << endl;
 }
 
