@@ -39,7 +39,7 @@ struct grid
 
 
 
-int main()
+int main1()
 {
 	vector<vector<char>> data;
 	string line;
@@ -210,4 +210,6 @@ int main()
 
 	cout << "Part 1 num xmases: " << numXmases(searchStr) << endl;
 
+
+	return 0;
 }
