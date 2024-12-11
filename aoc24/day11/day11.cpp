@@ -85,7 +85,7 @@ void print(list<string>& data)
 	cout << endl;
 }
 
-int main()
+int main1()
 {
 	string input1 = "125 17";
 	string input2 = "0 1 10 99 999";
