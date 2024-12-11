@@ -78,13 +78,14 @@ struct Grid
 		return ret;
 	}
 
-	void followTrail(pt curPt, set<pt> &reachedPeaks)
+	void followTrail(pt curPt, map<pt, int> &reachedPeakCounts)
 	{
 		int curVal = getData(curPt);
 
 		if (curVal == 9)
 		{
-			reachedPeaks.insert(curPt);
+			reachedPeakCounts.try_emplace(curPt, 0);
+			reachedPeakCounts[curPt]++;
 			return;
 		}
 
@@ -92,7 +93,7 @@ struct Grid
 
 		for (pt p : surrPts)
 		{
-			followTrail(p, reachedPeaks);
+			followTrail(p, reachedPeakCounts);
 		}
 
 	}
@@ -108,9 +109,9 @@ struct Grid
 				pt curPt{ r, c };
 				if (getData(curPt) == 0)
 				{
-					set<pt> reachedPeaks;
-					followTrail(curPt, reachedPeaks);
-					trailheadScores[curPt] = reachedPeaks.size();
+					map<pt, int> reachedPeakCounts;
+					followTrail(curPt, reachedPeakCounts);
+					trailheadScores[curPt] = reachedPeakCounts.size();
 				}
 			}
 		}
@@ -122,6 +123,38 @@ struct Grid
 		}
 		return total;
 	}
+
+	int ratingForTrailheads()
+	{
+		map<pt, int> trailheadRatings;
+
+		for (int r = 0; r < data.size(); r++)
+		{
+			for (int c = 0; c < data[r].size(); c++)
+			{
+				pt curPt{ r, c };
+				if (getData(curPt) == 0)
+				{
+					map<pt, int> reachedPeakCounts;
+					followTrail(curPt, reachedPeakCounts);
+					int t = 0;
+					for (auto& [k, v] : reachedPeakCounts)
+					{
+						t += v;
+					}
+					trailheadRatings[curPt] = t;
+				}
+			}
+		}
+
+		int total = 0;
+		for (auto& [p, score] : trailheadRatings)
+		{
+			total += score;
+		}
+		return total;
+	}
+
 
 };
 
@@ -137,6 +170,7 @@ int main()
 	grid.init(lines);
 
 	cout << "Part 1: " << grid.scoreTrailheads() << endl;
+	cout << "Part 2: " << grid.ratingForTrailheads() << endl;
 
 }
 
