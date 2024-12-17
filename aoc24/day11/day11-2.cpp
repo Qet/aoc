@@ -52,7 +52,7 @@ struct Data
 	void blink()
 	{
 		
-		map<uint64_t, int> newcounts;
+		map<uint64_t, uint64_t> newcounts;
 		
 		for (auto& [k, v] : counts)
 		{
