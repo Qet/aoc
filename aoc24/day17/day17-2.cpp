@@ -347,3 +347,8 @@ int main()
 
 	return 0;
 }
+
+/*
+start with a coarse scan over the whole range. find the lowest max point and zoom in. repeat until a solution is found. 
+
+*/
